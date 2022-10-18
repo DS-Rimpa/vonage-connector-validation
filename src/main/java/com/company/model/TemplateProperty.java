@@ -11,6 +11,7 @@ import java.util.Objects;
 @Builder
 @AllArgsConstructor
 public class TemplateProperty {
+    private String name;
     private List<TemplatePropertyParameters> parameters = new ArrayList();
 
     public TemplateProperty parameters(List<TemplatePropertyParameters> parameters) {

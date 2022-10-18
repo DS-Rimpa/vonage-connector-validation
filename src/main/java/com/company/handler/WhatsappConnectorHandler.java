@@ -4,13 +4,11 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2ProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2ProxyResponseEvent;
-import com.company.model.ConnectorRequest;
-import com.company.model.ConnectorResponse;
-import com.company.model.RuleEngineRequest;
-import com.company.model.RuleEngineResponse;
+import com.company.model.*;
 import com.company.model.response.ErrorResponse;
 import com.company.model.response.Response;
 import com.company.service.OpenLAPIService;
+import com.company.service.OpenlTemplateService;
 import com.company.service.SQSService;
 import com.company.util.CommonUtil;
 import com.company.util.Constants;
@@ -20,10 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @AllArgsConstructor
 @Slf4j
@@ -31,10 +26,12 @@ public class WhatsappConnectorHandler
         implements RequestHandler<APIGatewayV2ProxyRequestEvent, APIGatewayV2ProxyResponseEvent> {
     SQSService sqsService;
     OpenLAPIService openLAPIService;
+
     public WhatsappConnectorHandler() {
         sqsService = new SQSService();
         openLAPIService = new OpenLAPIService();
     }
+
     @Override
     public APIGatewayV2ProxyResponseEvent handleRequest(
             APIGatewayV2ProxyRequestEvent requestEvent, Context context) {
@@ -52,7 +49,7 @@ public class WhatsappConnectorHandler
                 throw new RuntimeException("appName | country | clientReferenceNumber" +
                         " are mandatory fields. Cannot be null or empty");
             log.info("Invoking OpenL for finding whatsapp Provider's URL ");
-            log.info("client app:{}",request.getAppName());
+            log.info("client app:{}", request.getAppName());
             RuleEngineResponse ruleEngineResponse =
                     openLAPIService.getServiceProviderDetails(
                             RuleEngineRequest.builder()
@@ -73,6 +70,8 @@ public class WhatsappConnectorHandler
             BeanUtils.copyProperties(request, connectorResponse);
             log.info("Publishing message to SQS Queue");
 
+            fromNexmoContent(request);
+
             sqsService.publishMessage(
                     ruleEngineResponse.getServiceProvider(),
                     request.getClientReferenceNumber(),
@@ -90,17 +89,69 @@ public class WhatsappConnectorHandler
             return generateApiGatewayV2ProxyResponseEvent(ErrorResponse.create(e));
         }
     }
+
+    private void fromNexmoContent(ConnectorRequest request) {
+        RuleEngineTemplateResponse response;
+        try {
+            response = new OpenlTemplateService().openlTemplateDetails(new RuleEngineTemplateRequest(request.getAppName(), request.getClientReferenceNumber()));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+        WhatsappRequest whatsappRequest = request.getMessageRequest();
+        switch (whatsappRequest.getContent().getType()) {
+            case template:
+                fromTemplateContent(whatsappRequest, response);
+                break;
+            case text:
+                if (null == whatsappRequest.getContent().getText()) {
+                    throw new RuntimeException("text should not be null");
+                }
+                break;
+            case custom:
+                formCustomContent(whatsappRequest, response);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void formCustomContent(WhatsappRequest whatsappRequest, RuleEngineTemplateResponse response) {
+        CustomProperty customProperty = whatsappRequest.getContent().getCustom();
+        if (!customProperty.getParameters().getBody().isEmpty()) {
+            if (customProperty.getParameters().getBody().size() != response.getBody()) {
+                throw new RuntimeException("Parameter body count shall match");
+            }
+        } else {
+            throw new RuntimeException("Template doesn't match");
+        }
+        if (!customProperty.getParameters().getHeader().isEmpty() &&
+                customProperty.getParameters().getHeader().size() != response.getHeader()) {
+            throw new RuntimeException("Parameter header count shall match");
+        }
+        if (!customProperty.getParameters().getFooter().isEmpty() &&
+                customProperty.getParameters().getFooter().size() != response.getFooter()) {
+            throw new RuntimeException("Parameter footer count shall match");
+        }
+        if (!customProperty.getParameters().getButton().isEmpty() &&
+                customProperty.getParameters().getButton().size() != response.getButton()) {
+            throw new RuntimeException("Parameter button count shall match");
+        }
+    }
+
+    private void fromTemplateContent(WhatsappRequest whatsappRequest, RuleEngineTemplateResponse response) {
+        if (whatsappRequest.getContent().getTemplate().getParameters().size() != response.getBody()) {
+            throw new RuntimeException("Parameter count shall match");
+        }
+    }
     private void populateFromNumberFromOpenLResponse(
             ConnectorRequest request, RuleEngineResponse ruleEngineResponse) {
         if (Constants.ServiceProviders.VONAGE.equalsIgnoreCase(
                 ruleEngineResponse.getServiceProvider())) {
-            LinkedHashMap<String, String> vonage =
-                    (LinkedHashMap<String, String>) request.getMessageRequest();
-            vonage.put("from", ruleEngineResponse.getFrom());
-            vonage.put("channel",Constants.CHANNEL);
-            request.setMessageRequest(vonage);
+            request.getMessageRequest().setFrom(ruleEngineResponse.getFrom());
+            request.getMessageRequest().setChannel(Constants.CHANNEL);
         }
     }
+
     private APIGatewayV2ProxyResponseEvent generateApiGatewayV2ProxyResponseEvent(Response response)
             throws JsonProcessingException {
         //Create response object
@@ -114,6 +165,7 @@ public class WhatsappConnectorHandler
         responseEvent.setBody(CommonUtil.getObjectMapper().writeValueAsString(response));
         return responseEvent;
     }
+
     private APIGatewayV2ProxyResponseEvent generateApiGatewayV2ProxyResponseEvent(
             ErrorResponse response) {
         //Create response object
