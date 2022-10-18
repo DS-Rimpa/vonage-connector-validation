@@ -14,5 +14,5 @@ public class ConnectorRequest {
     private String country;
     private String appName;
     private String clientReferenceNumber;
-    private Object messageRequest;
+    private WhatsappRequest messageRequest;
 }

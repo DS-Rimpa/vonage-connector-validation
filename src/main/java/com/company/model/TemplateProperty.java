@@ -1,13 +1,18 @@
 package com.company.model;
 
+import lombok.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@NoArgsConstructor
+@Data
+@Builder
+@AllArgsConstructor
 public class TemplateProperty {
     private List<TemplatePropertyParameters> parameters = new ArrayList();
-    public TemplateProperty() {
-    }
+
     public TemplateProperty parameters(List<TemplatePropertyParameters> parameters) {
         this.parameters = parameters;
         return this;
@@ -19,12 +24,7 @@ public class TemplateProperty {
         this.parameters.add(parametersItem);
         return this;
     }
-    public List<TemplatePropertyParameters> getParameters() {
-        return this.parameters;
-    }
-    public void setParameters(List<TemplatePropertyParameters> parameters) {
-        this.parameters = parameters;
-    }
+
     public boolean equals(Object o) {
         if (this == o) {
             return true;

@@ -21,44 +21,8 @@ public class MessagePropertyContent {
     private TemplateProperty template = null;
     private CustomProperty custom = null;
 
-    public MessagePropertyContent type(MessagePropertyContent.TypeEnum type) {
-        this.type = type;
-        return this;
-    }
-    public MessagePropertyContent.TypeEnum getType() {
-        return this.type;
-    }
-    public void setType(MessagePropertyContent.TypeEnum type) {
-        this.type = type;
-    }
-    public MessagePropertyContent text(String text) {
-        this.text = text;
-        return this;
-    }
-    public String getText() {
-        return this.text;
-    }
-    public void setText(String text) {
-        this.text = text;
-    }
 
 
-    public MessagePropertyContent template(TemplateProperty template) {
-        this.template = template;
-        return this;
-    }
-    public TemplateProperty getTemplate() {
-        return this.template;
-    }
-    public void setTemplate(TemplateProperty template) {
-        this.template = template;
-    }
-    public CustomProperty getCustom() {
-        return this.custom;
-    }
-    public void setCustom(CustomProperty custom) {
-        this.custom = custom;
-    }
     public boolean equals(Object o) {
         if (this == o) {
             return true;
