@@ -22,13 +22,15 @@ public class MessagePropertyContent {
     private CustomProperty custom = null;
 
 
-
     public boolean equals(Object o) {
         if (this == o) {
             return true;
         } else if (o != null && this.getClass() == o.getClass()) {
             MessagePropertyContent messagePropertyContent = (MessagePropertyContent)o;
-            return Objects.equals(this.type, messagePropertyContent.type) && Objects.equals(this.text, messagePropertyContent.text) && Objects.equals(this.template, messagePropertyContent.template) && Objects.equals(this.custom, messagePropertyContent.custom);
+            return Objects.equals(this.type, messagePropertyContent.type)
+                    && Objects.equals(this.text, messagePropertyContent.text)
+                    && Objects.equals(this.template, messagePropertyContent.template)
+                    && Objects.equals(this.custom, messagePropertyContent.custom);
         } else {
             return false;
         }

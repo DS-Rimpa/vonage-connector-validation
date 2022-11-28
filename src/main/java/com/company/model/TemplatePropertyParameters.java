@@ -1,15 +1,20 @@
 package com.company.model;
 
 import com.google.gson.annotations.SerializedName;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Objects;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class TemplatePropertyParameters {
     public static final String SERIALIZED_NAME_DEFAULT = "default";
     @SerializedName("default")
     private String _default;
-    public TemplatePropertyParameters() {
-    }
+
     public TemplatePropertyParameters _default(String _default) {
         this._default = _default;
         return this;
